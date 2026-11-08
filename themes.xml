@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.Padel" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#1C4D8F</item>
+        <item name="android:navigationBarColor">#1C4D8F</item>
+        <item name="android:windowBackground">#EEF2F6</item>
+    </style>
+</resources>

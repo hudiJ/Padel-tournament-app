@@ -1,0 +1,658 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}[hidden]{display:none!important}body{margin:0}</style>
+<title>Padel Tournaments</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: one narrow working column. Court-blue header band, three tabs (Setup, Schedule, Standings), saved tournaments in a slide-down list. */
+:root{
+  --bg:#eef2f6; --surface:#ffffff; --surface2:#e4eaf1; --line:#cfd8e3;
+  --fg:#12202f; --muted:#5a6b7d;
+  --court:#1c4d8f; --court-fg:#ffffff; --court-line:rgba(255,255,255,.35);
+  --ball:#d7e23a; --ball-fg:#1d2406;
+  --good:#16794a; --good-bg:#dcf2e6; --warn:#9a5b00; --warn-bg:#fcefd2; --bad:#b3261e; --bad-bg:#fbe1de;
+  --font-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --font-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1621; --surface:#15222f; --surface2:#1d2d3d; --line:#2a3d50;
+  --fg:#e8eef4; --muted:#93a4b5;
+  --court:#2a62ad; --court-fg:#ffffff; --court-line:rgba(255,255,255,.3);
+  --ball:#d7e23a; --ball-fg:#1d2406;
+  --good:#5fd39a; --good-bg:#12382a; --warn:#f0b955; --warn-bg:#3a2d10; --bad:#ff8a80; --bad-bg:#40191a;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1621; --surface:#15222f; --surface2:#1d2d3d; --line:#2a3d50;
+  --fg:#e8eef4; --muted:#93a4b5;
+  --court:#2a62ad; --court-fg:#ffffff; --court-line:rgba(255,255,255,.3);
+  --ball:#d7e23a; --ball-fg:#1d2406;
+  --good:#5fd39a; --good-bg:#12382a; --warn:#f0b955; --warn-bg:#3a2d10; --bad:#ff8a80; --bad-bg:#40191a;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:400 16px/1.45 var(--font-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+.wrap{max-width:760px;margin:0 auto}
+h1,h2,h3{font-family:var(--font-display);font-weight:700;letter-spacing:.01em;text-wrap:balance;margin:0}
+h2{font-size:1.6rem;line-height:1.1}
+h3{font-size:1.15rem;line-height:1.2;text-transform:uppercase;letter-spacing:.06em}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+
+/* header band */
+.band{background:var(--court);color:var(--court-fg);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-block:18px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));position:relative;overflow:hidden}
+.band::before{content:"";position:absolute;inset:0;background:
+  linear-gradient(var(--court-line),var(--court-line)) 50% 0/2px 100% no-repeat,
+  linear-gradient(var(--court-line),var(--court-line)) 0 62%/100% 2px no-repeat;opacity:.5;pointer-events:none}
+.band .wrap{position:relative}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.top h1{font-size:2.2rem;line-height:1}
+.top .sub{font-size:.9rem;opacity:.85;margin-top:4px;overflow-wrap:anywhere}
+.btn{border:1.5px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;font-weight:600;min-height:44px}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--ball);color:var(--ball-fg);border-color:var(--ball)}
+.btn.primary:hover{filter:brightness(.95)}
+.btn.ghost{background:transparent;color:inherit;border-color:var(--court-line)}
+.btn.ghost:hover{background:rgba(255,255,255,.12)}
+.btn.small{min-height:36px;padding:5px 10px;font-size:.9rem}
+.btn.danger{color:var(--bad)}
+.tabs{display:flex;gap:4px;margin-top:16px}
+.tab{flex:1;border:0;background:rgba(255,255,255,.12);color:var(--court-fg);padding:11px 8px;font-family:var(--font-display);font-weight:600;font-size:1.1rem;letter-spacing:.06em;text-transform:uppercase;border-radius:8px 8px 0 0;min-height:44px}
+.tab[aria-selected="true"]{background:var(--bg);color:var(--fg)}
+
+main{padding-top:18px;display:grid;gap:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:14px;min-width:0}
+.panel>header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+/* fields */
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+label.f{display:grid;gap:4px;font-size:.82rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;min-width:0}
+input[type=text],input[type=number],input[type=time],select{width:100%;min-height:44px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font-size:1rem;text-transform:none;letter-spacing:0;font-weight:500}
+input.sc{width:56px;text-align:center;padding:6px 4px;min-height:40px}
+.hint{font-size:.85rem;color:var(--muted)}
+
+/* calc readout */
+.calc{display:grid;grid-template-columns:1fr auto;gap:6px 16px;align-items:end;background:var(--court);color:var(--court-fg);border-radius:12px;padding:16px}
+.calc .big{font-family:var(--font-display);font-weight:700;font-size:3.4rem;line-height:.9}
+.calc .big small{font-size:1.2rem;margin-left:4px;font-weight:600}
+.calc .lbl{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;opacity:.85}
+.calc dl{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:6px 0 0;padding-top:10px;border-top:1px solid var(--court-line)}
+.calc dt{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;opacity:.8}
+.calc dd{margin:0;font-weight:600;font-size:1.1rem}
+.note{padding:10px 12px;border-radius:8px;font-size:.92rem;background:var(--warn-bg);color:var(--warn)}
+.note.bad{background:var(--bad-bg);color:var(--bad)}
+.note.good{background:var(--good-bg);color:var(--good)}
+
+/* teams */
+.teamrow{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center}
+.idx{font-family:var(--font-display);font-weight:700;font-size:1.2rem;color:var(--muted);text-align:center}
+.addrow{display:grid;grid-template-columns:1fr auto;gap:8px}
+
+/* schedule */
+.slot{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.slot.playoff{border-color:var(--ball)}
+.slothead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 14px;background:var(--surface2);font-family:var(--font-display);font-weight:600;font-size:1.05rem;letter-spacing:.05em;text-transform:uppercase}
+.slothead .time{font-weight:500;color:var(--muted)}
+.match{display:grid;grid-template-columns:48px 1fr;gap:12px;padding:12px 14px;border-top:1px solid var(--line);align-items:start}
+.match:first-of-type{border-top:0}
+.court{background:var(--court);color:var(--court-fg);border-radius:8px;text-align:center;padding:6px 2px;line-height:1.05}
+.court b{display:block;font-family:var(--font-display);font-size:1.7rem}
+.court span{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;opacity:.85}
+.sides{display:grid;gap:8px;min-width:0}
+.side{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;min-width:0}
+.pick{display:flex;align-items:center;gap:8px;text-align:left;width:100%;min-height:44px;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);font-weight:600;min-width:0;overflow-wrap:anywhere}
+.pick[aria-pressed="true"]{background:var(--good-bg);border-color:var(--good);color:var(--good)}
+.pick[aria-pressed="true"]::after{content:"Winner";margin-left:auto;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}
+.matchtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rest{padding:8px 14px;border-top:1px dashed var(--line);font-size:.88rem;color:var(--muted)}
+.chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.75rem;font-weight:600;background:var(--surface2);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.chip.ball{background:var(--ball);color:var(--ball-fg)}
+
+/* standings */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:420px}
+th,td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+th:nth-child(1),td:nth-child(1){text-align:center;width:44px}
+th:nth-child(2),td:nth-child(2){text-align:left;white-space:normal;overflow-wrap:anywhere;min-width:110px}
+td.name{font-weight:600}
+tr.lead td{background:var(--good-bg)}
+tr.tied td{background:var(--warn-bg)}
+.winner{display:grid;gap:4px;padding:18px;border-radius:12px;background:var(--ball);color:var(--ball-fg)}
+.winner .lbl{font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.winner .nm{font-family:var(--font-display);font-weight:700;font-size:2.4rem;line-height:1;overflow-wrap:anywhere}
+ol.protocol{margin:0;padding-left:20px;display:grid;gap:4px;font-size:.92rem}
+
+/* saved list */
+.saved{display:grid;gap:8px}
+.savedrow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.savedrow.cur{border-color:var(--court)}
+.savedrow .t{font-weight:600;overflow-wrap:anywhere}
+.savedrow .s{font-size:.82rem;color:var(--muted)}
+.status{font-size:.85rem;color:var(--muted)}
+.status.err{color:var(--bad)}
+@media (max-width:440px){
+  .calc{grid-template-columns:1fr}
+  .savedrow{grid-template-columns:1fr auto}
+  .savedrow .del{grid-column:1/-1}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head><body>
+<div class="band">
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Padel Tournaments</h1>
+        <div class="sub" id="curName">No tournament open</div>
+      </div>
+      <button class="btn ghost" id="btnSaved" type="button" aria-expanded="false" aria-controls="savedPanel">Tournaments</button>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Tournament sections">
+      <button class="tab" role="tab" id="tab-setup" data-tab="setup" aria-selected="true" type="button">Setup</button>
+      <button class="tab" role="tab" id="tab-schedule" data-tab="schedule" aria-selected="false" type="button">Schedule</button>
+      <button class="tab" role="tab" id="tab-standings" data-tab="standings" aria-selected="false" type="button">Standings</button>
+    </div>
+  </div>
+</div>
+<div class="wrap">
+  <main>
+    <section class="panel" id="savedPanel" hidden aria-label="Saved tournaments"></section>
+    <div id="view"></div>
+  </main>
+</div>
+<script>
+/* ---------- Core logic: fixtures, timing, standings, tie-breaks ---------- */
+const uid = () => Math.random().toString(36).slice(2, 9);
+const LS_KEY = "padel.tournaments.v1";
+
+function newTournament(name) {
+  const teams = [];
+  for (let i = 1; i <= 6; i++) teams.push({ id: uid(), name: "Team " + i });
+  return {
+    id: uid(), name: name || "New tournament", updated: Date.now(),
+    settings: { totalMin: 120, courts: 2, changeMin: 2, start: "09:00", perTeam: 0 },
+    teams, results: {}, playoffs: []
+  };
+}
+
+/* Circle method: every team meets every other once. Returns rounds of [a,b] id pairs. */
+function roundRobin(ids) {
+  const t = ids.slice();
+  if (t.length % 2) t.push(null);
+  const n = t.length, rounds = [];
+  for (let r = 0; r < n - 1; r++) {
+    const m = [];
+    for (let i = 0; i < n / 2; i++) {
+      const a = t[i], b = t[n - 1 - i];
+      if (a && b) m.push(r % 2 ? [b, a] : [a, b]);
+    }
+    rounds.push(m);
+    t.splice(1, 0, t.pop());
+  }
+  return rounds;
+}
+
+/* Split each round into time slots no bigger than the court count and assign courts. */
+function packRounds(rounds, courts, kind, labelFn) {
+  const slots = [];
+  rounds.forEach((ms, r) => {
+    for (let i = 0; i < ms.length; i += courts) {
+      const chunk = ms.slice(i, i + courts), k = chunk.length;
+      slots.push({
+        label: labelFn(r, rounds.length), kind,
+        matches: chunk.map((m, j) => ({
+          key: kind + ":" + [m[0], m[1]].sort().join("|"),
+          a: m[0], b: m[1], court: ((j + r) % k) + 1, kind
+        }))
+      });
+    }
+  });
+  return slots;
+}
+
+const sameSet = (x, y) => x.length === y.length && x.every(v => y.includes(v));
+const isDone = (R, key) => !!(R[key] && R[key].w);
+
+/* ---------- Standings ---------- */
+function statsFor(ids, matches, R) {
+  const s = {};
+  ids.forEach(id => (s[id] = { id, p: 0, w: 0, d: 0, l: 0, pts: 0, sf: 0, sa: 0, diff: 0 }));
+  matches.forEach(m => {
+    const r = R[m.key];
+    if (!r || !r.w || !s[m.a] || !s[m.b]) return;
+    const A = s[m.a], B = s[m.b];
+    A.p++; B.p++;
+    if (r.w === "draw") { A.d++; B.d++; A.pts += 1; B.pts += 1; }
+    else if (r.w === m.a) { A.w++; B.l++; A.pts += 2; }
+    else { B.w++; A.l++; B.pts += 2; }
+    const x = r.s && r.s[m.a], y = r.s && r.s[m.b];
+    if (isFinite(x) && isFinite(y) && x !== "" && y !== "" && x !== null && y !== null) {
+      A.sf += +x; A.sa += +y; B.sf += +y; B.sa += +x;
+    }
+  });
+  Object.values(s).forEach(v => (v.diff = v.sf - v.sa));
+  return s;
+}
+
+/* Returns groups of team ids, best first. A group with more than one team is still tied.
+   Order: 1 points, 2 head-to-head among the tied teams, 3 game difference, 4 games won. */
+function rankTeams(ids, matches, R) {
+  const all = statsFor(ids, matches, R);
+  const crit = [
+    id => all[id].pts,
+    (id, grp) => {
+      const sub = matches.filter(m => grp.includes(m.a) && grp.includes(m.b));
+      return statsFor(grp, sub, R)[id].pts;
+    },
+    id => all[id].diff,
+    id => all[id].sf
+  ];
+  function split(grp, ci) {
+    if (grp.length < 2 || ci >= crit.length) return [grp];
+    const vals = new Map(grp.map(id => [id, crit[ci](id, grp)]));
+    const distinct = [...new Set(vals.values())].sort((x, y) => y - x);
+    if (distinct.length === 1) return split(grp, ci + 1);
+    return distinct.flatMap(v => split(grp.filter(id => vals.get(id) === v), 1));
+  }
+  return split(ids.slice(), 0);
+}
+
+/* ---------- Full resolution of a tournament ---------- */
+function resolve(t) {
+  const ids = t.teams.map(x => x.id), courts = Math.max(1, +t.settings.courts || 1), R = t.results;
+  let rounds = roundRobin(ids);
+  const lim = +t.settings.perTeam;
+  if (lim > 0) rounds = rounds.slice(0, lim);
+  const mainSlots = packRounds(rounds, courts, "m", r => "Round " + (r + 1));
+  const mainMatches = mainSlots.flatMap(s => s.matches);
+  const done = mainMatches.length > 0 && mainMatches.every(m => isDone(R, m.key));
+  const groups = rankTeams(ids, mainMatches, R);
+  const out = { ids, mainSlots, mainMatches, groups, done, chain: [], state: "progress", stale: false, tied: [] };
+  if (!done) return out;
+  let tied = groups[0];
+  if (tied.length === 1) { out.state = "won"; out.winner = tied[0]; return out; }
+  out.state = "tied"; out.tied = tied;
+  for (let pi = 0; pi < t.playoffs.length; pi++) {
+    const p = t.playoffs[pi];
+    if (!sameSet(p.teams, tied)) { out.stale = true; break; }
+    const slots = packRounds(roundRobin(p.teams), courts, "p" + (pi + 1),
+      (r, n) => "Tie-break " + (pi + 1) + (n > 1 ? " · game " + (r + 1) : ""));
+    const ms = slots.flatMap(s => s.matches);
+    const pdone = ms.every(m => isDone(R, m.key));
+    const g = rankTeams(p.teams, ms, R);
+    out.chain.push({ pi, teams: p.teams, slots, matches: ms, done: pdone, groups: g });
+    if (!pdone) { out.state = "playoff"; out.tied = p.teams; return out; }
+    tied = g[0];
+    if (tied.length === 1) { out.state = "won"; out.winner = tied[0]; return out; }
+    out.tied = tied;
+  }
+  return out;
+}
+
+/* ---------- Game length ---------- */
+function calc(t, res) {
+  const s = t.settings, slotsN = res.mainSlots.length, games = res.mainMatches.length;
+  const total = Math.max(0, +s.totalMin || 0), change = Math.max(0, +s.changeMin || 0);
+  const g = slotsN ? Math.floor((total - (slotsN - 1) * change) / slotsN) : 0;
+  const used = slotsN ? slotsN * Math.max(g, 0) + (slotsN - 1) * change : 0;
+  const per = {};
+  res.mainMatches.forEach(m => { per[m.a] = (per[m.a] || 0) + 1; per[m.b] = (per[m.b] || 0) + 1; });
+  const vals = Object.values(per);
+  return {
+    games, slotsN, g, change, used, left: total - used, total,
+    minPer: vals.length ? Math.min(...vals) : 0, maxPer: vals.length ? Math.max(...vals) : 0
+  };
+}
+
+const toMin = hhmm => { const m = /^(\d{1,2}):(\d{2})/.exec(hhmm || ""); return m ? +m[1] * 60 + +m[2] : null; };
+const fmtClock = mins => {
+  mins = ((mins % 1440) + 1440) % 1440;
+  return String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0");
+};
+
+/* ---------- Storage: shared db when available, otherwise this browser ---------- */
+const Store = {
+  mode: "local", db: null, items: [], onChange: () => {}, error: "",
+  pack(t) { return { id: t.id, name: t.name, updated: t.updated, json: JSON.stringify(t) }; },
+  unpack(d) { try { return JSON.parse(d.json); } catch (e) { return null; } },
+  readLocal() {
+    try { const v = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); return Array.isArray(v) ? v : []; }
+    catch (e) { return []; }
+  },
+  writeLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(this.items)); return true; } catch (e) { return false; }
+  },
+  async init() {
+    try { if (window.claude && claude.use) this.db = await claude.use("db"); } catch (e) { this.db = null; }
+    if (!this.db) { this.items = this.readLocal(); return; }
+    this.mode = "shared";
+    await new Promise(resolve => {
+      let settled = false;
+      const finish = () => { if (!settled) { settled = true; resolve(); } };
+      const timer = setTimeout(finish, 3500);
+      try {
+        this.db.collection("tournaments").onSnapshot(snap => {
+          this.items = snap.docs.map(d => d.data()).filter(Boolean);
+          clearTimeout(timer); finish(); this.onChange();
+        }, () => {
+          this.mode = "local"; this.items = this.readLocal(); clearTimeout(timer); finish(); this.onChange();
+        });
+      } catch (e) { this.mode = "local"; this.items = this.readLocal(); clearTimeout(timer); finish(); }
+    });
+  },
+  list() {
+    return this.items.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0));
+  },
+  async save(t) {
+    t.updated = Date.now();
+    const doc = this.pack(t);
+    const i = this.items.findIndex(x => x.id === t.id);
+    if (this.mode === "shared") {
+      try { await this.db.doc("tournaments/" + t.id).set(doc); this.error = ""; return true; }
+      catch (e) { this.error = "Could not save to the shared store, saved in this browser instead."; this.mode = "local"; }
+    }
+    if (i >= 0) this.items[i] = doc; else this.items.push(doc);
+    return this.writeLocal();
+  },
+  async remove(id) {
+    this.items = this.items.filter(x => x.id !== id);
+    if (this.mode === "shared") { try { await this.db.doc("tournaments/" + id).delete(); } catch (e) {} }
+    else this.writeLocal();
+  }
+};
+/* ---------- UI ---------- */
+let T = null;            // current tournament
+let tab = "setup";
+let confirmDel = null;
+let status = "";
+let statusErr = false;
+let saveTimer = null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nameOf = id => { const x = T.teams.find(t => t.id === id); return x ? x.name || "Unnamed team" : "Removed team"; };
+const clampInt = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(+v || 0)));
+
+function setStatus(msg, err) { status = msg; statusErr = !!err; const el = $("#statusLine"); if (el) { el.textContent = msg; el.className = "status" + (err ? " err" : ""); } }
+
+function touch() {
+  T.updated = Date.now();
+  setStatus("Saving…");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 500);
+}
+async function doSave() {
+  clearTimeout(saveTimer);
+  const ok = await Store.save(T);
+  const now = new Date();
+  setStatus(ok ? "Saved " + fmtClock(now.getHours() * 60 + now.getMinutes()) + (Store.mode === "shared" ? "" : " · this browser") : (Store.error || "Could not save"), !ok);
+  if (Store.error) setStatus(Store.error, true);
+  renderSaved(); renderHeader();
+}
+
+/* ----- header and tabs ----- */
+function renderHeader() {
+  $("#curName").textContent = T ? T.name : "No tournament open";
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+}
+
+/* ----- saved tournaments ----- */
+function renderSaved() {
+  const el = $("#savedPanel");
+  if (el.hidden) return;
+  const rows = Store.list().map(x => {
+    const cur = T && x.id === T.id;
+    const when = x.updated ? new Date(x.updated).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "";
+    const del = confirmDel === x.id
+      ? `<button class="btn small danger" data-act="delyes" data-id="${x.id}" type="button">Delete for good</button>`
+      : `<button class="btn small" data-act="delask" data-id="${x.id}" type="button">Delete</button>`;
+    return `<div class="savedrow${cur ? " cur" : ""}"><div><div class="t">${esc(x.name)}</div><div class="s">${cur ? "Open now · " : ""}${when}</div></div>
+      <button class="btn small" data-act="open" data-id="${x.id}" type="button">Open</button><span class="del">${del}</span></div>`;
+  }).join("");
+  el.innerHTML = `<header><h3>Saved tournaments</h3><div class="matchtools">
+      <button class="btn small primary" data-act="new" type="button">New tournament</button>
+      <button class="btn small" data-act="save" type="button">Save now</button></div></header>
+    <div class="saved">${rows || '<p class="hint">Nothing saved yet. Changes save automatically once you start editing.</p>'}</div>
+    <div id="statusLine" class="status${statusErr ? " err" : ""}">${esc(status)}</div>
+    <p class="hint">${Store.mode === "shared" ? "Saved to this page's shared store, so it stays when you come back." : "Saved in this browser only. Opening the page from another device or browser will not show these."}</p>`;
+}
+
+/* ----- setup tab ----- */
+function calcHTML() {
+  const res = resolve(T), c = calc(T, res), s = T.settings;
+  const st = toMin(s.start);
+  const ends = st == null ? "" : fmtClock(st + c.used);
+  let warn = "";
+  if (T.teams.length < 2) warn = `<div class="note bad">Add at least two teams to build a schedule.</div>`;
+  else if (c.g < 1) warn = `<div class="note bad">There is not enough time. Add minutes, add courts, or reduce games per team.</div>`;
+  else if (c.g < 6) warn = `<div class="note">Games come out at ${c.g} minutes. That is short for padel. Add time or courts, or limit games per team.</div>`;
+  const perTxt = c.minPer === c.maxPer ? c.maxPer : c.minPer + "–" + c.maxPer;
+  return `<div class="calc" aria-live="polite">
+      <div><div class="lbl">Each game</div><div class="big num">${Math.max(c.g, 0)}<small>min</small></div></div>
+      <div class="lbl" style="text-align:right">${c.slotsN} time slot${c.slotsN === 1 ? "" : "s"}<br>${s.courts} court${+s.courts === 1 ? "" : "s"}</div>
+      <dl>
+        <div><dt>Games</dt><dd class="num">${c.games}</dd></div>
+        <div><dt>Per team</dt><dd class="num">${perTxt}</dd></div>
+        <div><dt>Changeover</dt><dd class="num">${c.change} min</dd></div>
+        <div><dt>Spare time</dt><dd class="num">${Math.max(c.left, 0)} min</dd></div>
+        ${ends ? `<div><dt>Finishes</dt><dd class="num">${ends}</dd></div>` : ""}
+      </dl></div>${warn}`;
+}
+function refreshCalc() { const el = $("#calcBox"); if (el) el.innerHTML = calcHTML(); }
+
+function renderSetup() {
+  const s = T.settings;
+  const teamRows = T.teams.map((t, i) => `<div class="teamrow"><div class="idx num">${i + 1}</div>
+    <input type="text" id="team-${t.id}" data-team="${t.id}" value="${esc(t.name)}" aria-label="Team ${i + 1} name" maxlength="40">
+    <button class="btn small danger" data-act="rmteam" data-id="${t.id}" type="button" aria-label="Remove ${esc(t.name)}">Remove</button></div>`).join("");
+  $("#view").innerHTML = `
+  <div style="display:grid;gap:18px">
+  <section class="panel"><header><h2>Tournament</h2></header>
+    <label class="f">Name<input type="text" id="f-name" data-field="name" value="${esc(T.name)}" maxlength="60"></label></section>
+  <section class="panel"><header><h2>Time and courts</h2></header>
+    <div class="fields">
+      <label class="f">Total playing time (min)<input type="number" inputmode="numeric" id="f-total" data-set="totalMin" min="10" max="1440" value="${s.totalMin}"></label>
+      <label class="f">Courts<input type="number" inputmode="numeric" id="f-courts" data-set="courts" min="1" max="30" value="${s.courts}"></label>
+      <label class="f">Changeover between games (min)<input type="number" inputmode="numeric" id="f-change" data-set="changeMin" min="0" max="30" value="${s.changeMin}"></label>
+      <label class="f">First game starts<input type="time" id="f-start" data-set="start" value="${esc(s.start)}"></label>
+      <label class="f">Games per team (0 = all play all)<input type="number" inputmode="numeric" id="f-per" data-set="perTeam" min="0" max="40" value="${s.perTeam}"></label>
+    </div>
+    <div id="calcBox">${calcHTML()}</div>
+    <p class="hint">Game length is worked out from total time, courts and number of teams. Every team plays every other team once unless you set games per team.</p>
+  </section>
+  <section class="panel"><header><h2>Teams</h2><span class="chip num">${T.teams.length} teams</span></header>
+    <div style="display:grid;gap:8px" id="teamList">${teamRows}</div>
+    <div class="addrow"><input type="text" id="newTeam" placeholder="Team name, for example Lopez / Mora" maxlength="40" aria-label="New team name"><button class="btn primary" data-act="addteam" type="button">Add team</button></div>
+  </section></div>`;
+}
+
+/* ----- schedule tab ----- */
+function renderSchedule() {
+  const res = resolve(T), c = calc(T, res);
+  if (T.teams.length < 2) { $("#view").innerHTML = `<div class="panel"><div class="note bad">Add at least two teams on the Setup tab.</div></div>`; return; }
+  const all = res.mainSlots.concat(res.chain.flatMap(x => x.slots));
+  const st = toMin(T.settings.start), step = Math.max(c.g, 0) + c.change, R = T.results;
+  const played = res.mainMatches.filter(m => isDone(R, m.key)).length;
+  let html = `<div style="display:grid;gap:14px"><div class="matchtools"><span class="chip ball num">${played} of ${res.mainMatches.length} games played</span><span class="hint num">${c.g} min per game</span></div>`;
+  all.forEach((slot, i) => {
+    const time = st == null ? "" : fmtClock(st + i * step) + "–" + fmtClock(st + i * step + Math.max(c.g, 0));
+    const playing = new Set(slot.matches.flatMap(m => [m.a, m.b]));
+    const resting = T.teams.filter(t => !playing.has(t.id));
+    const matches = slot.matches.map(m => {
+      const r = R[m.key] || {}, sc = r.s || {};
+      const side = id => `<div class="side"><button class="pick" type="button" data-act="win" data-key="${m.key}" data-w="${id}" aria-pressed="${r.w === id}">${esc(nameOf(id))}</button>
+        <input class="sc num" type="number" inputmode="numeric" min="0" max="99" id="s-${m.key.replace(/[^a-z0-9]/gi, "_")}-${id}" data-score="${m.key}" data-team="${id}" value="${sc[id] == null ? "" : sc[id]}" placeholder="–" aria-label="Games won by ${esc(nameOf(id))}"></div>`;
+      return `<div class="match"><div class="court"><span>Court</span><b class="num">${m.court}</b></div>
+        <div class="sides">${side(m.a)}${side(m.b)}
+        <div class="matchtools"><button class="btn small" type="button" data-act="win" data-key="${m.key}" data-w="draw" aria-pressed="${r.w === "draw"}">${r.w === "draw" ? "Draw (tap to undo)" : "Draw"}</button>
+        ${r.w ? `<button class="btn small" type="button" data-act="clear" data-key="${m.key}">Clear result</button>` : '<span class="hint">Tap the winning team. Scores are optional.</span>'}</div></div></div>`;
+    }).join("");
+    html += `<section class="slot${slot.kind !== "m" ? " playoff" : ""}"><div class="slothead"><span>${esc(slot.label)}${slot.kind !== "m" ? ' <span class="chip ball">Tie-break</span>' : ""}</span><span class="time num">${time}</span></div>${matches}
+      ${resting.length && slot.kind === "m" ? `<div class="rest">Resting: ${resting.map(t => esc(t.name)).join(", ")}</div>` : ""}</section>`;
+  });
+  $("#view").innerHTML = html + "</div>";
+}
+
+/* ----- standings tab ----- */
+function renderStandings() {
+  const res = resolve(T), R = T.results;
+  if (T.teams.length < 2) { $("#view").innerHTML = `<div class="panel"><div class="note bad">Add at least two teams on the Setup tab.</div></div>`; return; }
+  const stats = statsFor(res.ids, res.mainMatches, R);
+  let banner = "";
+  const playedN = res.mainMatches.filter(m => isDone(R, m.key)).length;
+  if (res.state === "won") {
+    const usedTb = res.chain.length > 0;
+    banner = `<div class="winner"><div class="lbl">Tournament winner</div><div class="nm">${esc(nameOf(res.winner))}</div>
+      <div>${usedTb ? "Decided by tie-break games." : "Clear leader after all games."}</div></div>`;
+  } else if (res.state === "progress") {
+    banner = `<div class="note">${playedN} of ${res.mainMatches.length} games played. The winner is worked out once every game has a result.</div>`;
+  } else if (res.state === "playoff") {
+    banner = `<div class="note">Tie-break games are waiting for results: ${res.tied.map(i => esc(nameOf(i))).join(", ")}. Enter them on the Schedule tab.</div>`;
+  } else {
+    banner = `<div class="note">${res.tied.length} teams are level for first: <b>${res.tied.map(i => esc(nameOf(i))).join(", ")}</b>.
+      Points, head-to-head, game difference and games won could not separate them.</div>
+      <div class="matchtools"><button class="btn primary" type="button" data-act="mktb">Create tie-break games</button>
+      ${res.stale ? '<button class="btn" type="button" data-act="rstb">Remove outdated tie-breaks</button>' : ""}</div>
+      ${res.stale ? '<div class="hint">Earlier results changed, so the saved tie-break games no longer match the teams that are tied.</div>' : ""}`;
+  }
+  let pos = 1, rows = "";
+  res.groups.forEach((g, gi) => {
+    const tiedGroup = g.length > 1 && res.done && !(res.state === "won" && gi === 0 && g.includes(res.winner));
+    g.forEach(id => {
+      const s = stats[id];
+      const lead = res.state === "won" && id === res.winner;
+      rows += `<tr class="${lead ? "lead" : tiedGroup && gi === 0 ? "tied" : ""}"><td class="num">${pos}${g.length > 1 ? "=" : ""}</td><td class="name">${esc(nameOf(id))}</td>
+        <td class="num">${s.p}</td><td class="num">${s.w}</td><td class="num">${s.d}</td><td class="num">${s.l}</td><td class="num"><b>${s.pts}</b></td><td class="num">${s.diff > 0 ? "+" : ""}${s.diff}</td></tr>`;
+    });
+    pos += g.length;
+  });
+  let tb = "";
+  if (res.chain.length) {
+    tb = `<section class="panel"><header><h3>Tie-break games</h3></header>` + res.chain.map(ch => {
+      const ts = statsFor(ch.teams, ch.matches, R);
+      const lines = ch.groups.map(g => g.map(id => esc(nameOf(id)) + " (" + ts[id].w + (ts[id].w === 1 ? " win" : " wins") + ")").join(" and ")).join(" ahead of ");
+      return `<p style="margin:0"><b>Tie-break ${ch.pi + 1}</b> between ${ch.teams.map(i => esc(nameOf(i))).join(", ")}. ${ch.done ? lines + "." : "Waiting for results."}</p>`;
+    }).join("") + `</section>`;
+  }
+  $("#view").innerHTML = `<div style="display:grid;gap:18px">${banner}
+    <section class="panel"><header><h2>Standings</h2><span class="chip num">${playedN} / ${res.mainMatches.length} played</span></header>
+      <div class="tablewrap"><table><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th><th>+/-</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="hint">Win 2 points, draw 1. +/- is games won minus games lost, from the scores you enter.</p></section>
+    ${tb}
+    <section class="panel"><header><h3>If teams tie for first</h3></header>
+      <ol class="protocol"><li>Most points.</li><li>Head-to-head results between the tied teams only.</li><li>Best game difference (+/-).</li><li>Most games won.</li><li>Still level: tie-break games between the tied teams, on the same courts, one after another. If those also end level, create another round.</li></ol></section></div>`;
+}
+
+function render() {
+  renderHeader();
+  if (tab === "setup") renderSetup(); else if (tab === "schedule") renderSchedule(); else renderStandings();
+}
+
+/* ----- actions ----- */
+function setWinner(key, w) {
+  const r = (T.results[key] = T.results[key] || {});
+  r.w = r.w === w ? null : w;
+  if (!r.w && !r.s) delete T.results[key];
+}
+function openTournament(id) {
+  const x = Store.items.find(i => i.id === id);
+  const t = x && Store.unpack(x);
+  if (!t) return;
+  T = t; confirmDel = null; tab = "setup"; render(); renderSaved();
+}
+function startNew() {
+  T = newTournament("New tournament"); confirmDel = null; tab = "setup";
+  setStatus("Not saved yet"); render(); renderSaved(); touch();
+}
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act],[data-tab],#btnSaved");
+  if (!b) return;
+  if (b.id === "btnSaved") {
+    const p = $("#savedPanel"); p.hidden = !p.hidden;
+    b.setAttribute("aria-expanded", String(!p.hidden)); renderSaved(); return;
+  }
+  if (b.dataset.tab) { tab = b.dataset.tab; render(); return; }
+  const act = b.dataset.act, id = b.dataset.id, key = b.dataset.key;
+  if (act === "win") { setWinner(key, b.dataset.w); touch(); render(); }
+  else if (act === "clear") { delete T.results[key]; touch(); render(); }
+  else if (act === "addteam") {
+    const inp = $("#newTeam"), nm = inp.value.trim();
+    T.teams.push({ id: uid(), name: nm || "Team " + (T.teams.length + 1) });
+    T.playoffs = []; touch(); renderSetup(); $("#newTeam").focus();
+  } else if (act === "rmteam") {
+    if (T.teams.length <= 2) { refreshCalc(); return; }
+    T.teams = T.teams.filter(t => t.id !== id);
+    Object.keys(T.results).forEach(k => { if (k.split(/[:|]/).includes(id)) delete T.results[k]; });
+    T.playoffs = []; touch(); renderSetup();
+  } else if (act === "mktb") {
+    const res = resolve(T);
+    T.playoffs = T.playoffs.slice(0, res.chain.length);
+    T.playoffs.push({ teams: res.tied.slice() });
+    touch(); tab = "schedule"; render();
+  } else if (act === "rstb") {
+    const res = resolve(T);
+    T.playoffs = T.playoffs.slice(0, res.chain.length); touch(); render();
+  } else if (act === "new") startNew();
+  else if (act === "save") doSave();
+  else if (act === "open") openTournament(id);
+  else if (act === "delask") { confirmDel = id; renderSaved(); }
+  else if (act === "delyes") {
+    await Store.remove(id); confirmDel = null;
+    if (T && T.id === id) { const l = Store.list()[0]; if (l) openTournament(l.id); else startNew(); }
+    renderSaved();
+  }
+});
+
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.dataset.field === "name") { T.name = el.value; touch(); renderHeader(); }
+  else if (el.dataset.team && !el.dataset.score) {
+    const t = T.teams.find(x => x.id === el.dataset.team); if (t) { t.name = el.value; touch(); }
+  } else if (el.dataset.set) {
+    const k = el.dataset.set, s = T.settings;
+    if (k === "start") s.start = el.value;
+    else {
+      const lim = { totalMin: [10, 1440], courts: [1, 30], changeMin: [0, 30], perTeam: [0, 40] }[k];
+      if (el.value === "") return;
+      s[k] = clampInt(el.value, lim[0], lim[1]);
+    }
+    touch(); refreshCalc();
+  } else if (el.dataset.score) {
+    const r = (T.results[el.dataset.score] = T.results[el.dataset.score] || {});
+    r.s = r.s || {};
+    if (el.value === "") delete r.s[el.dataset.team]; else r.s[el.dataset.team] = clampInt(el.value, 0, 99);
+    if (!r.w && !Object.keys(r.s).length) delete T.results[el.dataset.score];
+    touch();
+  }
+});
+
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.dataset.score) {
+    const key = el.dataset.score, r = T.results[key];
+    if (r && r.s && !r.w) {
+      const m = resolve(T).mainMatches.concat(resolve(T).chain.flatMap(c => c.matches)).find(x => x.key === key);
+      if (m && r.s[m.a] != null && r.s[m.b] != null && r.s[m.a] !== r.s[m.b]) {
+        r.w = r.s[m.a] > r.s[m.b] ? m.a : m.b; touch(); render();
+      }
+    }
+  } else if (el.dataset.set) { render(); }
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.id === "newTeam") { e.preventDefault(); document.querySelector('[data-act="addteam"]').click(); }
+});
+
+/* ----- start ----- */
+(async function start() {
+  $("#view").innerHTML = '<div class="panel"><p class="hint">Loading your tournaments…</p></div>';
+  Store.onChange = () => renderSaved();
+  await Store.init();
+  const latest = Store.list()[0];
+  const t = latest && Store.unpack(latest);
+  if (t) { T = t; setStatus("Opened your latest tournament"); render(); }
+  else { T = newTournament("New tournament"); setStatus("Not saved yet"); render(); touch(); }
+})();
+</script></body></html>
